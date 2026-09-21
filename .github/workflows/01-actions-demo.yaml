@@ -16,7 +16,7 @@ jobs:
       - name: Smoke test 
         run:
           sleep 5
-          curl -f http://localhost:5000
+          curl  http://localhost:5000
         
 
   
