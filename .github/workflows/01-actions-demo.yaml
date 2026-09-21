@@ -1,7 +1,7 @@
 name: Flask CI Pipeline
 on: push
 jobs:
-  flask-ci-job:
+  flask-ci-job:   
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
