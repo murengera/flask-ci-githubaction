@@ -19,9 +19,16 @@ jobs:
           curl http://localhost:5000
 
       - name: Login to Docker Hub
-        run: echo "${{ secrets.DOCKER_HUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUBUSERNAME }}" --password-stdin
+        env:
+          DOCKER_USER: ${{ secrets.DOCKERHUBUSERNAME }}
+          DOCKER_TOKEN: ${{ secrets.DOCKER_HUB_TOKEN }}
+        run: |
+          echo "$DOCKER_TOKEN" | docker login -u "$DOCKER_USER" --password-stdin
 
       - name: Tag and Push to Docker Hub
+        env:
+          DOCKER_USER: ${{ secrets.DOCKERHUBUSERNAME }}
         run: |
-          docker tag my-flask-app ${{ secrets.DOCKERHUBUSERNAME }}/my-flask-app:latest
-          docker push ${{ secrets.DOCKERHUBUSERNAME }}/my-flask-app:latest
+          CLEAN_USER=$(echo "$DOCKER_USER" | tr -d '[:space:]')
+          docker tag my-flask-app "${CLEAN_USER}/my-flask-app:latest"
+          docker push "${CLEAN_USER}/my-flask-app:latest"
