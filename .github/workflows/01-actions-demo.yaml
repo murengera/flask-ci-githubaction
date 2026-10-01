@@ -1,4 +1,4 @@
-name: cwvj Flask Build Test Publish Workflow
+name: cwvj Flask Build  Publish Workflow
 
 on:
   push:
