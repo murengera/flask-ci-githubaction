@@ -19,7 +19,7 @@ on:
 
 env:
   APPLICATION_NAME: cwj-flask-app
-  DOCKER_USERNAME: daltonbigirimana5
+  DOCKERHUBUSERNAME: daltonbigirimana5
 
 jobs:
   flask-build-test-publish:
@@ -46,7 +46,7 @@ jobs:
       - name: Login to Dockerhub
         uses: docker/login-action@v3
         with:
-          username: ${{ env.DOCKER_USERNAME }}
+          username: ${{ env.DOCKERHUBUSERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN || secrets.DOCKERHUB_TOKEN }}
 
       - name: Build Docker Image
