@@ -1,64 +1,85 @@
-name: production workflow trigger Demo
+name: 01 - CWVJ Flask Build Test Publish Pipeline
 
 on:
   push:
     branches:
-      - "devloper"
-      - "feature/*"
-
+      - main
+      - feature/*
     paths:
-      - "app/**"
-      - "docker/**"
-      - ".github/workflows/*"
-    
+      - app/**
+      - .github/workflows/**
+
   pull_request:
-    types: [opened, reopened, closed, ready_for_review, synchronize]
     branches:
-      - "main"
+      - main
+    types:
+      - opened
+      - synchronize
+      - ready_for_review
+
+env:
+  APPLICATION_NAME: cwvj-flask-app
+  DOCKER_USERNAME: cloudwithvarjosh
 
 jobs:
-  test:
-    name: Run Lint and Unit Tests
+  flask-build-test-publish-job:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
-          cache: "pip"
-      - run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt pytest flake8
-      - run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-      - run: pytest -v
 
-  build-and-push:
-    name: Build, Smoke Test, and Push Docker Image
-    needs: test
-    runs-on: ubuntu-latest
-    if: github.event.action != 'closed'
+    if: ${{ (github.event_name == 'push' && startsWith(github.ref_name, 'feature/')) || (github.event_name == 'pull_request' && github.base_ref == 'main' && !contains(github.event.pull_request.title, 'WIP')) }}
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - run: docker build -t my-flask-app .
-      - name: Run Container & Smoke Test
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Generate Dynamic Image Tag
         run: |
-          docker run -d -p 5000:5000 --name my-flask-container my-flask-app
-          sleep 5
-          curl -f http://localhost:5000
-          docker stop my-flask-container
-          docker rm my-flask-container
-      - uses: docker/login-action@v3
+          echo "IMAGE_TAG=v${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}" >> $GITHUB_ENV
+
+      - name: Display Build Information
+        run: |
+          echo "Application: $APPLICATION_NAME"
+          echo "Repository: $GITHUB_REPOSITORY"
+          echo "Actor: $GITHUB_ACTOR"
+          echo "Branch: $GITHUB_REF_NAME"
+          echo "Image Tag: $IMAGE_TAG"
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUBUSERNAME }}
-          password: ${{ secrets.DOCKER_HUB_TOKEN }}
-      - name: Tag and Push Docker Image
-        env:
-          DOCKER_USER: ${{ secrets.DOCKERHUBUSERNAME }}
+          username: ${{ env.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build Docker Image
+        uses: docker/build-push-action@v7
+        with:
+          context: ./app
+          push: false
+          tags: ${{ env.DOCKER_USERNAME }}/${{ env.APPLICATION_NAME }}:${{ env.IMAGE_TAG }}
+
+      - name: Run Container
         run: |
-          CLEAN_USER=$(echo "$DOCKER_USER" | tr -d '[:space:]')
-          IMAGE_NAME="${CLEAN_USER}/my-flask-app"
-          docker tag my-flask-app "${IMAGE_NAME}:latest"
-          docker tag my-flask-app "${IMAGE_NAME}:${{ github.sha }}"
-          docker push "${IMAGE_NAME}:latest"
-          docker push "${IMAGE_NAME}:${{ github.sha }}"
+          docker run -d \
+            -p 5000:5000 \
+            --name flask-container \
+            $DOCKER_USERNAME/$APPLICATION_NAME:$IMAGE_TAG
+
+      - name: Smoke Test Application
+        run: |
+          sleep 5
+          curl --fail http://localhost:5000
+          curl --fail http://localhost:5000/health
+
+      - name: Push Docker Image To DockerHub
+        if: ${{ success() }}
+        run: |
+          docker push $DOCKER_USERNAME/$APPLICATION_NAME:$IMAGE_TAG
+
+      - name: Collect Container Logs
+        if: ${{ failure() }}
+        run: |
+          docker logs flask-container
+
+      - name: Cleanup Containers
+        if: ${{ always() }}
+        run: |
+          docker rm -f flask-container || true
