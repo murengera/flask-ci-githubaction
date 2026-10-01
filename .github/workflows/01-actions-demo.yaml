@@ -25,7 +25,7 @@ jobs:
   flask-build-test-publish:
     runs-on: ubuntu-latest
 
-    if: ${{ (github.event_name == 'push' && startsWith(github.ref_name, 'feature/'))}}
+    if: ${{ (github.event_name == 'push' && startsWith(github.ref_name, 'feature/')) || (contains(github.event.pull_request.title, '[WIP]')) }}
 
     steps:
       - name: Checkout Repository
