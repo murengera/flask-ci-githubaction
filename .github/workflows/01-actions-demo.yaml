@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - features/*
+      - features
     paths:
       - app/**
       - .github/workflows/**
@@ -25,7 +25,7 @@ jobs:
   flask-build-test-publish:
     runs-on: ubuntu-latest
 
-    if: ${{ (github.event_name == 'push' && startsWith(github.ref_name, 'features/')) || (contains(github.event.pull_request.title, '[WIP]')) }}
+    if: ${{ (github.event_name == 'push' && github.ref_name == 'features') || (github.event_name == 'pull_request' && contains(github.event.pull_request.title, '[WIP]')) }}
 
     steps:
       - name: Checkout Repository
