@@ -1,48 +1,38 @@
 name: Payment service deployment
 
-on : 
-  workflow_dispatch
-
-push:
+on:
+  workflow_dispatch:
+  push:
 
 jobs:
-
-  run-unite-test-job:
+  run-unit-test-job:
     runs-on: ubuntu-latest
 
     steps:
-       - name: Execute unite Tests
-         run: |
-          echo "Running unite Tests..."
+      - name: Execute Unit Tests
+        run: |
           echo "Running unit tests..."
           echo "Unit tests completed successfully."
-      
+
   build-payment-artifacts-job:
     runs-on: ubuntu-latest
 
     needs:
-      - run-unite-test-job 
-    
-    steps:
-       - name: Build Paymrnt Artifacts
-         run: |
+      - run-unit-test-job
 
-           echo "Building Paymrnt Artifacts..."
-           echo "Building Paymrnt Artifacts..."
-           echo "Paymrnt Artifacts built successfully." 
-  
+    steps:
+      - name: Build Payment Artifacts
+        run: |
+          echo "Building Payment Artifacts..."
+          echo "Payment Artifacts built successfully."
+
   deploy-payment-service-job:
     needs:
       - build-payment-artifacts-job
 
     uses: ./.github/deploy.yaml
+
     with:
       application_name: payment-service
       run_security_scan: false
       replicas: 3
-
-    
-      
-
-    
-
