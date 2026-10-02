@@ -1,4 +1,4 @@
-name: cwvj Flask Build  Publish Workflow
+name: Dalton Flask Build  Publish Workflows
 
 on:
   push:
